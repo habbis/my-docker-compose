@@ -1,0 +1,264 @@
+ # ssl cloudflare origin cert
+  ssl_certificate /config/mycloudflare_origin.crt.pem;
+  ssl_certificate_key /config/mycloudflare_origin.key.pem;
+  ssl_session_timeout  5m;
+
+  access_log /var/log/nginx/access.log;
+  error_log /var/log/nginx/error.log;
+
+server {
+  listen 80; #default_server;
+  listen 443 ssl;
+  server_name *.yourdomain.net;
+  return 301 https://$host$request_uri;
+  #rewrite ^ https://$host$request_uri? permanent;
+  #ssl on;
+
+
+  #if ($http_x_forwarded_proto != 'https'){
+  #    return 301 https://$server_name$request_uri;
+  #}
+
+}
+
+
+# each server heres is internal server 
+
+server {
+  listen 443 ssl;
+  server_name portainer.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:9000;
+  } 
+}
+
+
+server {
+  listen 443 ssl;
+  server_name heimdall.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:80;
+    proxy_redirect off;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $server_name;
+    #proxy_pass https://internal.net:8002;
+  } 
+}
+
+server {
+  listen 443 ssl;
+  server_name autoindex.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:7009;
+  }
+}
+
+
+server {
+  listen 443 ssl;
+  server_name int.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:8090;
+  } 
+}
+
+server {
+  listen 443 ssl;
+  server_name repo01.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:7990;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name jira.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:8080;
+  } 
+}
+
+server {
+  listen 443 ssl;
+  server_name nextcloud.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass https://internal.net:443;
+    proxy_redirect off;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $server_name;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name torrent.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:7000;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name sabnzbd.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:7005;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name lidarr.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:8686;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name radarr.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:7878;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name sonarr.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:8989;
+  }
+}
+
+
+#server {
+#  listen 443 ssl;
+#  server_name airsonic.yourdomain.net;
+#  #ssl on;
+#  location / {
+#    proxy_pass http://airsonic:4040;
+#  }
+#}
+
+server {
+  listen 443 ssl;
+  server_name mbi.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:3579;
+  }
+}
+
+
+
+server {
+  listen 443 ssl;
+  server_name plex.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:32400;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name tautulli.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:8181;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name bilder.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:7013;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name hydra.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:5076;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name bazarr.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:6767;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name picard.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:5800;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name filebot.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass http://internal.net:8001;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name qdirstat.yourdomain.net;
+  #ssl on;
+  location / {
+    proxy_pass https://internal.net:8000;
+  }
+}
+
+#server {
+#  listen 443 ssl;
+#  server_name statping.yourdomain.net;
+  #ssl on;
+#  location / {
+#    proxy_pass http://internal.net:7019;
+#  }
+#}
+
+#server {
+#  listen 443 ssl;
+#  server_name smokeping.yourdomain.net;
+#  #ssl on;
+#  location / {
+#    proxy_pass http://internal.net:7020;
+#  }
+#}
+
+
+
+
+
+
+
+
+

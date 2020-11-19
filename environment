@@ -1,0 +1,41 @@
+# place in /etc/environment
+PUID=1001 # docker user
+PGID=992 # docker group
+TZ="Europe/Oslo"
+USERDIR="/mnt/media/"
+
+## plex
+
+PLEX_CLAIM=
+SYN_PLEX=ACCESS-TOKEN@PLEX_SERVER_IP
+NUC_PLEX=ACCESS-TOKEN@PLEX_SERVER_IP
+# Plex libraries section id. Remember to change the numbers below to reflect your library. Add more as needed.
+# ALWAYS DO A DRY RUN TO VERIFY BEFORE SYNCING
+SYN_PLEX_HOLLYWOOD=1
+NUC_PLEX_HOLLYWOOD=2
+SYN_PLEX_TVSHOWS=2
+NUC_PLEX_TVSHOWS=16
+
+## NOTIFICATIONS
+
+TGRAM_BOT_TOKEN=
+TGRAM_CHAT_ID=
+MY_EMAIL=
+
+
+## apps
+confluence_user=""
+bitbucket_user=""
+jira_user=""
+confluencedb_pass=""
+bitbucketdb_pass=""
+jiradb_pass=""
+MYSQL_ROOT_PASSWORD=""
+FILEBOT_VNC_PASSWD=""
+QDIRSTAT_VNC_PASSWD=""
+STATPING_DB_USER=""
+STATPING_DB_PASS=""
+STATPING_DB=""
+nextcloud_user=""
+nextclouddb_pass=""
+

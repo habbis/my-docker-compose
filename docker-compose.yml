@@ -1,0 +1,737 @@
+  version: "3.8"
+
+  networks:
+    t1_proxy:
+      external:
+        name: t1_proxy
+    default:
+      driver: bridge
+
+  services:
+## FRONTENDS
+    proxy:
+      image: ghcr.io/linuxserver/nginx
+      container_name: nginx
+      networks:
+        - default
+        - t1_proxy
+      environment:
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+      volumes:
+        - ${USERDIR}/docker/nginx:/config
+      ports:
+        - "80:80"
+        - "443:443"
+      restart: unless-stopped
+
+
+    portainer:
+      image: portainer/portainer
+      container_name: portainer
+      restart: always
+      command: -H unix:///var/run/docker.sock
+      networks:
+        - t1_proxy
+      #ports:
+      #  - "7001:9000"
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - ${USERDIR}/docker/portainer/data:/data
+        - ${USERDIR}/docker/shared:/shared
+      environment:
+        - TZ=${TZ}
+
+    watchtower:
+      container_name: watchtower
+      restart: always
+      image: v2tec/watchtower
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+      command: --schedule "0 0 4 * * *" --cleanup
+
+    #organizr:
+    #  container_name: organizr
+    #  restart: always
+    #  image: lsiocommunity/organizr
+    #  volumes:
+    #    - ${USERDIR}/docker/organizr:/config
+    #    - ${USERDIR}/docker/shared:/shared
+      #ports:
+      #  - "7002:80"
+    #  environment:
+    #    - PUID=${PUID}
+    #    - PGID=${PGID}
+    #    - TZ=${TZ}
+
+ # Heimdall - Unified Frontend Alternative
+   # Putting all services behind Oragnizr slows things down.
+    heimdall:
+      image: linuxserver/heimdall:latest
+      container_name: heimdall
+      restart: unless-stopped
+      networks:
+        - t1_proxy
+      #ports:
+      #  - "7010:80"
+      volumes:
+        - $USERDIR/docker/heimdall:/config
+      environment:
+        PUID: $PUID
+        PGID: $PGID
+        TZ: $TZ
+
+
+   # Autoindex - Simple Directory Index
+    autoindex:
+      image: dceoy/nginx-autoindex:latest
+      container_name: autoindex
+      restart: unless-stopped
+      networks:
+        - t1_proxy
+      #ports:
+      #   - "7009:80"
+      volumes:
+        - /media:/var/lib/nginx/html:ro # Location you want to index
+
+## database
+
+
+    dbint:
+      image: "postgres:12.0-alpine"
+      container_name: "dbint"
+      #hostname: db
+      networks:
+        - t1_proxy
+      volumes:
+          - ${USERDIR}/docker/dbint:/var/lib/postgresql/data
+      #ports:
+        #- target: 5432
+        #  published: 5432
+        #  protocol: tcp
+        #  mode: host
+        #- "5432:5432"
+      restart: always
+      environment:
+        - POSTGRES_PASSWORD=${confluencedb_pass}
+        - POSTGRES_USER=${confluence_user}
+        #- POSTGRES_DB=
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+
+
+    dbrepo:
+      image: "postgres:12.0-alpine"
+      container_name: "dbrepo"
+      #hostname: db
+      networks:
+        - t1_proxy
+      volumes:
+          - ${USERDIR}/docker/dbrepo:/var/lib/postgresql/data
+      #ports:
+        #- target: 5432
+        #  published: 5432
+        #  protocol: tcp
+        #  mode: host
+        #- "5432:5432"
+      restart: always
+      environment:
+        - POSTGRES_PASSWORD=${bitbucketdb_pass}
+        - POSTGRES_USER=${bitbucket_user}
+        #- POSTGRES_DB=
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+
+
+    dbjira:
+      image: "postgres:11.0-alpine"
+      container_name: "dbjira"
+      #hostname: db
+      networks:
+        - t1_proxy
+      volumes:
+          - ${USERDIR}/docker/dbjira:/var/lib/postgresql/data
+      #ports:
+        #- target: 5432
+        #  published: 5432
+        #  protocol: tcp
+        #  mode: host
+        #- "5432:5432"
+      restart: always
+      environment:
+        - POSTGRES_PASSWORD=${jiradb_pass}
+        - POSTGRES_USER=${jira_user}
+        #- POSTGRES_DB=
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+
+    dbstatping:
+      image: "postgres:12.0-alpine"
+      container_name: "dbstatping"
+      #hostname: db
+      networks:
+        - t1_proxy
+      volumes:
+          - ${USERDIR}/docker/dbstatping:/var/lib/postgresql/dat
+      #ports:
+        #- target: 5432
+        #  published: 5432
+        #  protocol: tcp
+        #  mode: host
+        #- "5432:5432"
+      restart: always
+      environment:
+        - POSTGRES_PASSWORD=${STATPING_DB_PASS}
+        - POSTGRES_USER=${STATPING_DB_USER}
+        #- POSTGRES_DB=
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+
+
+    dbnextcloud:
+      image: "postgres:12.0-alpine"
+      container_name: "dbnextcloud"
+      #hostname: db
+      networks:
+        - t1_proxy
+      volumes:
+          - ${USERDIR}/docker/dbnextcloud:/var/lib/postgresql/dat
+      #ports:
+        #- target: 5432
+        #  published: 5432
+        #  protocol: tcp
+        #  mode: host
+        #- "5432:5432"
+      restart: always
+      environment:
+        - POSTGRES_PASSWORD=${nextclouddb_pass}
+        - POSTGRES_USER=${nextcloud_user}
+        #- POSTGRES_DB=
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+
+
+## application
+
+    confluence:
+      restart: always
+      container_name: "confluence"
+      hostname: confluence
+      image: atlassian/confluence-server
+      networks:
+        - t1_proxy
+      volumes:
+        -  $USERDIR/docker/confluence/:/var/atlassian/application-data/confluence:rw
+      #ports:
+      #  - "8090:8090"
+      #  - "8091:8091"
+      environment:
+        #- ATL_PROXY_NAME=int.habbis.trade # Base url: example.example.com
+        #- ATL_PROXY_PORT=443
+        #- ATL_TOMCAT_SCHEME=https
+        - ATL_TOMCAT_SECURE=true
+        - JVM_MAXIMUM_MEMORY=4096m
+        - JVM_MINIMUM_MEMORY=384m
+      #depends_on:
+        #- db
+
+    repo1:
+      restart: always
+      image: atlassian/bitbucket-server
+      container_name: "bitbucket"
+      hostname: bitbucket
+      networks:
+        - t1_proxy
+
+      volumes:
+        -  $USERDIR/docker/bitbucket/:/var/atlassian/application-data/bitbucket:rw
+      #ports:
+      #  - "7990:7990"
+      #  - "7999:7999"
+      environment:
+        - SERVER_PROXY_NAME=repo01.habbis.trade # Base url: example.example.com
+        - SERVER_PROXY_PORT=443
+        - SERVER_SCHEME=https
+        - SERVER_SECURE=true
+        - JVM_MAXIMUM_MEMORY=4096m
+        - JVM_MINIMUM_MEMORY=384m
+      #depends_on:
+        #- db
+
+    jira:
+      restart: always
+      image: atlassian/jira-software
+      container_name: "jira"
+      hostname: jira
+      networks:
+        - t1_proxy
+
+      volumes:
+        -  $USERDIR/docker/jira/:/var/atlassian/application-data/jira:rw
+      #ports:
+      #  - "8080:8080"
+      environment:
+        #- ATL_PROXY_NAME=jira.habbis.trade # Base url: example.example.com
+        #- ATL_PROXY_PORT=443
+        #- ATL_TOMCAT_SCHEME=https
+        - ATL_TOMCAT_SECURE=true
+        - JVM_MAXIMUM_MEMORY=4096m
+        - JVM_MINIMUM_MEMORY=384m
+      #depends_on:
+        #- db
+
+    nextcloud:
+      container_name: nextcloud
+      restart: always
+      image: linuxserver/nextcloud
+      networks:
+        - t1_proxy
+      volumes:
+        - ${USERDIR}/docker/nextcloud:/config
+        - ${USERDIR}/shared_data:/data
+        - ${USERDIR}/docker/shared:/shared
+      #ports:
+      #  - "7011:443"
+      environment:
+        - PUID=${PUID}
+        - PGID=${PGID}
+      #depends_on:
+        #- db
+
+    qbittorrent:
+      image: "linuxserver/qbittorrent"
+      container_name: "qbittorrent"
+      networks:
+        - t1_proxy
+      volumes:
+        - ${USERDIR}/docker/qbittorrent:/config
+        - ${USERDIR}/Downloads/completed:/downloads
+        - ${USERDIR}/docker/shared:/shared
+      #ports:
+      #  - "7004:7000"
+      #  - "6881:6881"
+      #  - "6881:6881/udp"
+      restart: always
+      environment:
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+        - UMASK_SET=002
+        - WEBUI_PORT=7000
+
+## DOWNLOADERS
+
+    sabnzbd:
+      image: "linuxserver/sabnzbd"
+      container_name: "sabnzbd"
+      networks:
+        - t1_proxy
+      volumes:
+        - ${USERDIR}/docker/sabnzbd:/config
+        - ${USERDIR}/Downloads/completed:/downloads
+        - ${USERDIR}/Downloads/incomplete:/incomplete-downloads
+        - ${USERDIR}/docker/shared:/shared
+      #ports:
+      #    - "7005:8080"
+      restart: always
+      environment:
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+
+## PVRS
+
+  # Lidarr - Music Management
+  # Set url_base in lidarr settings if using PathPrefix
+    lidarr:
+      image: linuxserver/lidarr:latest
+      container_name: lidarr
+      restart: unless-stopped
+      networks:
+        - t1_proxy
+      #ports:
+      #  - "7033:8686"
+      volumes:
+        - $USERDIR/docker/lidarr:/config
+        - $USERDIR/Downloads:/downloads
+        - /media/ds918/media/music:/music
+        - "/etc/localtime:/etc/localtime:ro"
+      environment:
+        PUID: $PUID
+        PGID: $PGID
+        TZ: $TZ
+
+    radarr:
+      image: "linuxserver/radarr"
+      container_name: "radarr"
+      volumes:
+        - ${USERDIR}/docker/radarr:/config
+        - ${USERDIR}/Downloads/completed:/downloads
+        - ${USERDIR}/media/movies:/movies
+        - "/etc/localtime:/etc/localtime:ro"
+        - ${USERDIR}/docker/shared:/shared
+      #ports:
+      #  - "7006:7878"
+      restart: always
+      environment:
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+
+    sonarr:
+      image: "linuxserver/sonarr"
+      container_name: "sonarr"
+      networks:
+        - t1_proxy
+      volumes:
+        - ${USERDIR}/docker/sonarr:/config
+        - ${USERDIR}/Downloads/completed:/downloads
+        - ${USERDIR}/media/tvshows:/tv
+        - "/etc/localtime:/etc/localtime:ro"
+        - ${USERDIR}/docker/shared:/shared
+      #ports:
+      #    - "7007:8989"
+      restart: always
+      environment:
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+
+## media
+
+#    airsonic:
+#      container_name: airsonic
+#      image: linuxserver/airsonic:latest
+#      restart: unless-stopped
+#      networks:
+#        - t1_proxy
+     #ports:
+     #  - "7022:4040"
+#      volumes:
+#        - /media:/nas:ro
+#        - $USERDIR/docker/airsonic/podcasts:/podcasts
+#        - $USERDIR/docker/airsonic/playlists:/playlists
+#        - $USERDIR/docker/airsonic/config:/config
+     #      - $USERDIR/docker/airsonic/config:/app/airsonic/config #Used to change log level for debugging
+#        - /etc/timezone:/etc/timezone:ro
+#        - /etc/localtime:/etc/localtime:ro
+#      environment:
+#        - PUID=$PUID
+#        - PGID=$PGID
+#        - JAVA_OPTS=-Dserver.use-forward-headers=true
+
+    mbi:
+      image: linuxserver/ombi:latest
+      container_name: ombi
+      restart: unless-stopped
+      networks:
+        - t1_proxy
+      #ports:
+      #  - "7012:3579"
+      volumes:
+        - $USERDIR/docker/ombi:/config
+      environment:
+        PUID: $PUID
+        PGID: $PGID
+        TZ: $TZ
+        BASE_URL: ombi.habbis.trade  /ombi #optional
+
+    plexms:
+      container_name: plexms
+      restart: always
+      image: plexinc/pms-docker
+      volumes:
+        - ${USERDIR}/docker/plexms:/config
+        - ${USERDIR}/Downloads/plex_tmp:/transcode
+        - /media/media:/media
+        - ${USERDIR}/docker/shared:/shared
+      #ports:
+      #  - "32400:32400/tcp"
+      #  - "3005:3005/tcp"
+      #  - "8324:8324/tcp"
+      #  - "32469:32469/tcp"
+      #  - "1900:1900/udp"
+      #  - "32410:32410/udp"
+      #  - "32412:32412/udp"
+      #  - "32413:32413/udp"
+      #  - "32414:32414/udp"
+      environment:
+        - TZ=${TZ}
+        - HOSTNAME="Docker Plex"
+        - PLEX_CLAIM="PLEX_CLAIM"
+        - PLEX_UID=${PUID}
+        - PLEX_GID=${PGID}
+        - ADVERTISE_IP="http://plex.habbis.trade:32400/"
+
+    tautulli:
+      container_name: tautulli
+      restart: always
+      image: linuxserver/tautulli
+      networks:
+        - t1_proxy
+      volumes:
+        - ${USERDIR}/docker/tautulli/config:/config
+        - ${USERDIR}/docker/tautulli/logs:/logs:ro
+        - ${USERDIR}/docker/shared:/shared
+      #ports:
+      #  - "7000:8181"
+      environment:
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}  
+
+#    plex-sync:
+#      image: patsissons/plex-sync:develop
+#      container_name: plex-sync
+#      environment:
+#        INITIAL_RUN: "true"
+#      #      DRY_RUN: 0
+#        CRON_SCHEDULE: "*/5 * * * *"
+#        SECTION_MAPS: $SYN_PLEX/$SYN_PLEX_HOLLYWOOD $NUC_PLEX/$NUC_PLEX_HOLLYWOOD | $SYN_PLEX/$SYN_PLEX_TVSHOWS $NUC_PLEX/$NUC_PLEX_TVSHOWS | $SYN_PLEX/$SYN_PLEX_INDIAN $NUC_PLEX/$NUC_PLEX_INDIAN | $SYN_PLEX/$SYN_PLEX_KOLLYWOOD $NUC_PLEX/$NUC_PLEX_KOLLYWOOD | $SYN_PLEX/$SYN_PLEX_DOCMOVIES $NUC_PLEX/$NUC_PLEX_DOCMOVIES | $SYN_PLEX/$SYN_PLEX_DOCSHOWS $NUC_PLEX/$NUC_PLEX_DOCSHOWS | $SYN_PLEX/$SYN_PLEX_KIDSMOVIES $NUC_PLEX/$NUC_PLEX_KIDSMOVIES | $SYN_PLEX/$SYN_PLEX_INTERNATIONAL $NUC_PLEX/$NUC_PLEX_INTERNATIONAL
+#      restart: unless-stopped
+
+  # PhotoShow - Image Gallery
+    photoshow:
+     image: linuxserver/photoshow:latest
+     container_name: photoshow
+     restart: unless-stopped
+     networks:
+       - t1_proxy
+     #ports:
+     #  - "7013:80"
+     volumes:
+       - $USERDIR/docker/photoshow/config:/config
+       - $USERDIR/docker/photoshow/thumbs:/Thumbs
+       - /media/ds918/media/photos:/Pictures:ro
+     environment:
+       PUID: $PUID
+       PGID: $PGID
+       TZ: $TZ
+
+## INDEXERS
+
+    hydra:
+      image: linuxserver/hydra2:latest
+      container_name: "hydra"
+      networks:
+        - t1_proxy
+      volumes:
+        - ${USERDIR}/docker/hydra:/config
+        - ${USERDIR}/Downloads:/downloads
+        - ${USERDIR}/docker/shared:/shared
+      #ports:
+      #  - "7008:5076"
+      restart: always
+      environment:
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ} 
+
+## MEDIA FILE MANAGEMENT
+ # Bazarr - Subtitle Management
+    bazarr:
+      image: linuxserver/bazarr:latest
+      container_name: bazarr
+      restart: unless-stopped
+      networks:
+        - t1_proxy
+      #ports:
+      #  - "7014:6767"
+      volumes:
+        - $USERDIR/docker/bazarr:/config
+        - /media:/nas
+      environment:
+        PUID: $PUID
+        PGID: $PGID
+        TZ: $TZ
+
+    picard:
+      image: mikenye/picard:latest
+      container_name: picard
+      restart: unless-stopped
+      networks:
+        - t1_proxy
+      #ports:
+      #  - "7015:5800"
+      volumes:
+        - $USERDIR/Downloads/wip_media:/wip_media:rw
+        - $USERDIR/docker/picard:/config:rw
+        - /media/ds918/media/music:/music:rw
+        - /dev/shm:/dev/shm
+      environment:
+        USER_ID: $PUID
+        GROUP_ID: $PGID
+        TZ: $TZ
+        UMASK: 002
+        DISPLAY_WIDTH: 1600
+        DISPLAY_HEIGHT: 960
+
+ # FileBot - File renamer
+    filebot:
+      image: jlesage/filebot:latest
+      container_name: filebot
+      restart: unless-stopped
+      networks:
+        - t1_proxy
+      #ports:
+      #  - "7016:5800"
+      volumes:
+      # A *.psm license file is required in /config
+      # https://github.com/jlesage/docker-filebot#installing-a-license
+        - $USERDIR/docker/filebot:/config
+        - /media:/nas
+        - $USERDIR/Downloads:/downloads
+      environment:
+        USER_ID: $PUID
+        GROUP_ID: $PGID
+        TZ: $TZ
+        UMASK: 002
+        KEEP_APP_RUNNING: 1
+        CLEAN_TMP_DIR: 1
+        DISPLAY_WIDTH: 1600
+        DISPLAY_HEIGHT: 960
+        VNC_PASSWD: $FILEBOT_VNC_PASSWD
+
+## UTILITIES
+# Glances - System Information
+#    glances:
+#      image: nicolargo/glances:latest
+#      container_name: glances
+#      restart: unless-stopped
+#      privileged: true
+#    #    network_mode: host
+#      networks:
+#        - t1_proxy
+      #ports:
+      #  - "7017:61208"
+#      pid: host
+#      volumes:
+#        - $USERDIR/docker/glances/glances.conf:/glances/conf/glances.conf # Use this if you want to add a glances.conf file
+#        - /var/run/docker.sock:/var/run/docker.sock:ro
+#      environment:
+      #      GLANCES_OPT: "-C /glances/conf/glances.conf --quiet --export influxdb"
+#        GLANCES_OPT: "-w"
+
+# APCUPSD - APC UPS Management
+  # create the apcupsd.conf file
+    #apcupsd:
+      #image: gersilex/apcupsd:lastest
+      #container_name: apcupsd
+      #restart: unless-stopped
+      #networks:
+        #- t1_proxy
+      #ports:
+        #- "7018:3551"
+      #privileged: true
+      #tty: true
+      #volumes:
+        #- /tmp/apcupsd-docker:/tmp/apcupsd-docker
+        #- $USERDIR/docker/apcupsd/apcupsd.conf:/etc/apcupsd/apcupsd.conf
+        #- $USERDIR/docker/apcupsd/doshutdown:/etc/apcupsd/doshutdown
+        #- $USERDIR/docker/apcupsd/apcupsd.events:/var/log/apcupsd.events
+ # qDirStat - Directory Statistics
+    qdirstat:
+      image: jlesage/qdirstat:latest
+      container_name: qdirstat
+      restart: unless-stopped
+      networks:
+        - t1_proxy
+      #ports:
+      #  - "7018:5800"
+      volumes:
+        - $USERDIR:/storage:ro
+        - $USERDIR/docker/qdirstat/config:/config:rw
+        - /media:/nas
+      environment:
+        USER_ID: $PUID
+        GROUP_ID: $PGID
+        UMASK: 002
+        TZ: $TZ
+        KEEP_APP_RUNNING: 1
+        CLEAN_TMP_DIR: 1
+        DISPLAY_WIDTH: 1600
+        DISPLAY_HEIGHT: 960
+        VNC_PASSWORD: $QDIRSTAT_VNC_PASSWD
+
+# StatPing - Status Page & Monitoring Server
+    statping:
+      image: hunterlong/statping:latest
+      container_name: statping
+      restart: unless-stopped
+      networks:
+        - t1_proxy
+     #ports:
+     #  - "7019:8080"
+      volumes:
+        - $USERDIR/docker/statping:/app
+      environment:
+        VIRTUAL_HOST: localhost
+        VIRTUAL_PORT: 8080
+        DB_CONN: db
+        DB_HOST: db
+        DB_USER: $STATPING_DB_USER
+        DB_PASS: $STATPING_DB_PASS
+        DB_DATABASE: $STATPING_DB
+        IS_DOCKER: "true"
+        DISABLE_LOGS: "false"
+        NAME: StatPing
+        DESCRIPTION: Monitor web services
+
+    smokeping:
+      image: linuxserver/smokeping:latest
+      container_name: smokeping
+      restart: unless-stopped
+      networks:
+        - t1_proxy
+     #ports:
+     #  - "7020:80"
+      volumes:
+        - $USERDIR/docker/smokeping/config:/config
+        - $USERDIR/docker/smokeping/data:/data
+      environment:
+        PUID: $PUID
+        PGID: $PGID
+        TZ: $TZ
+
+## MAINTENANCE
+    #ouroboros:
+      #image: pyouroboros/ouroboros:latest
+      #container_name: ouroboros
+      #restart: unless-stopped
+      #networks:
+      #  - default
+      #volumes:
+      #  - /var/run/docker.sock:/var/run/docker.sock
+      #environment:
+        #TZ: $TZ
+        #INTERVAL: 86400
+        #LOG_LEVEL: debug
+        #SELF_UPDATE: "true"
+        #CLEANUP: "true"
+        #IGNORE: traefik influxdb hassio_dns homeassistant hassio_supervisor addon_core_check_config addon_62c7908d_autobackup plexms
+        #NOTIFIERS: "tgram://$TGRAM_BOT_TOKEN/$TGRAM_CHAT_ID/"
+
+  # Docker-GC - Automatic Docker Garbage Collection
+  # Create docker-gc-exclude file
+    #dockergc:
+      #image: clockworksoul/docker-gc-cron:latest
+      #container_name: docker-gc
+      #restart: unless-stopped
+      #network_mode: none
+      #volumes:
+        #- /var/run/docker.sock:/var/run/docker.sock
+        #- $USERDIR/docker/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude
+      #environment:
+        #CRON: 0 0 * * *
+        #FORCE_IMAGE_REMOVAL: 1
+        #FORCE_CONTAINER_REMOVAL: 0
+        #GRACE_PERIOD_SECONDS: 604800
+        #DRY_RUN: 0
+        #CLEAN_UP_VOLUMES: 1
+        #TZ: $TZ
