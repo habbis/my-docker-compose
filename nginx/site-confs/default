@@ -1,4 +1,4 @@
- # ssl cloudflare origin cert
+ # ssl cloudflare origin cert how setup cloudflare origin cert https://kb.virtubox.net/knowledgebase/cloudflare-ssl-origin-certificates-nginx/
   ssl_certificate /config/mycloudflare_origin.crt.pem;
   ssl_certificate_key /config/mycloudflare_origin.key.pem;
   ssl_session_timeout  5m;
