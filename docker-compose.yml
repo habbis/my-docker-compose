@@ -176,7 +176,7 @@
       networks:
         - t1_proxy
       volumes:
-          - ${USERDIR}/docker/dbstatping:/var/lib/postgresql/dat
+          - ${USERDIR}/docker/dbstatping:/var/lib/postgresql/data
       #ports:
         #- target: 5432
         #  published: 5432
@@ -200,7 +200,7 @@
       networks:
         - t1_proxy
       volumes:
-          - ${USERDIR}/docker/dbnextcloud:/var/lib/postgresql/dat
+          - ${USERDIR}/docker/dbnextcloud:/var/lib/postgresql/data
       #ports:
         #- target: 5432
         #  published: 5432
